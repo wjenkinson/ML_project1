@@ -27,7 +27,7 @@ Thumbs.db
 
 # Logs and outputs
 logs/
-output/
+*.pt
 *.log
 
 # PyTorch / ML artifacts
