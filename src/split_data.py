@@ -18,7 +18,16 @@ def main() -> None:
         print(f"Data directory not found: {data_dir}")
         return
 
-    dump_files = sorted(data_dir.glob("dump.*.LAMMPS"))
+    def timestep_from_name(path: Path) -> int:
+        """Extract numeric timestep from a filename like 'dump.12345.LAMMPS'."""
+        name = path.name
+        try:
+            parts = name.split(".")
+            return int(parts[1])
+        except (IndexError, ValueError):
+            return 0
+
+    dump_files = sorted(data_dir.glob("dump.*.LAMMPS"), key=timestep_from_name)
 
     if not dump_files:
         print(f"No LAMMPS dump files found in {data_dir}")
