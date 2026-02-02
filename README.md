@@ -83,7 +83,8 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 
 ### 4. Predictions
 
-*[After training, we'll add visualizations of model predictions vs ground truth here.]*
+![Prediction](output/prediction_vs_gt.gif)
+*Left: ground truth, Right: predicted frame*
 
 ### How to Reproduce
 
@@ -101,6 +102,16 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 3. Train the model:
    ```bash
    python src/train_cnn.py
+   ```
+
+4. Generate predictions:
+   ```bash
+   python src/predict_sequence.py
+   ```
+
+5. Generate video:
+   ```bash
+   python src/make_video.py
    ```
 
 ## License
