@@ -9,7 +9,16 @@ ML_project1/
 ├── data/                   # LAMMPS dump files
 ├── src/                    # Source code
 │   └── explore_data.py     # Data exploration and visualization
+│   └── visualize_grid.py   # Visualize grid data
+│   └── train_cnn.py        # Train a CNN for frame prediction
+│   └── predict_sequence.py # Predict a sequence of frames
+│   └── make_video.py       # Make a video from the predicted frames
 ├── output/                 # Output files and visualizations
+│   └── visualization_dump.0.png
+│   └── visualization_dump.9000.png
+│   └── grid_sample_train_0.png
+│   └── grid_sample_train_9000.png
+│   └── prediction_vs_gt.gif
 ├── requirements.txt        # Python dependencies
 └── README.md               # This file
 ```
