@@ -7,7 +7,7 @@
 
 ---
 
-#### **Phase 1: Data Preparation**
+#### ** (COMPLETE) Phase 1: Data Preparation**
 **Description:** Prepare the dataset for training by inspecting, splitting, and formatting the data.
 
 **Tasks:**
@@ -26,7 +26,7 @@
 
 ---
 
-#### **Phase 2: Model Selection and Prototyping**
+#### ** (COMPLETE) Phase 2: Model Selection and Prototyping**
 **Description:** Implement a simple model architecture to predict the next frame.
 
 **Tasks:**
@@ -45,7 +45,7 @@
 
 ---
 
-#### **Phase 3: Evaluation and Learning**
+#### ** (COMPLETE) Phase 3: Evaluation and Learning**
 **Description:** Evaluate the model’s output and reflect on the process.
 
 **Tasks:**
