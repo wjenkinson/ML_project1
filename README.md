@@ -95,6 +95,10 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 ![Prediction](output/prediction_vs_gt.gif)
 *Left: ground truth, Right: predicted frame*
 
+Predicted frame resembles a fading shadow.
+
+Future work will focus on swapping out CNNs for GNNs, RNNs and PINNs.
+
 ### How to Reproduce
 
 1. Install dependencies:
