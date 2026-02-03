@@ -62,15 +62,13 @@ The data consists of LAMMPS dump files in the `data` directory. Each file repres
 
 This section provides a visual walkthrough of the project pipeline, from raw LAMMPS data to trained model predictions.
 
-### 1. Raw LAMMPS Data
+### 1. Raw LAMMPS Data (extrusion process)
 
-We start with LAMMPS dump files containing particle positions over time. Here are visualizations of the first and last frames:
+We start with LAMMPS dump files containing particle positions over time.
 
-#### Initial Frame (t=0)
-![Initial Frame](output/visualization_dump.0.png)
+![Simulation GIF](output/lammps_simulation.gif)
 
-#### Frame at t=9000
-![Later Frame](output/visualization_dump.9000.png)
+
 
 ### 2. Data Preprocessing
 
@@ -98,6 +96,8 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 Predicted frame resembles a fading shadow.
 
 Future work will focus on swapping out CNNs for GNNs, RNNs and PINNs.
+
+See Postmortem for more details.
 
 ### How to Reproduce
 
