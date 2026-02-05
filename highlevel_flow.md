@@ -3,37 +3,37 @@
 flowchart TD
 
     %% Data source
-    A["Raw LAMMPS dumps<br/>(data/dump_timestep.LAMMPS)"] --> B["Data exploration<br/>src/explore_data.py<br/>Simulation GIF]
+    A["**Raw simulation data**<br/>LAMMPS dump files"] 
 
-    %% Splits
-    A --> C["Train/val split<br/>src/split_data.py<br/>data/splits/train/val_files.txt]
+    %% Split
+    A --> B["**Train / Val split**<br/>Select timesteps & split into sequences"]
 
-    %% Grid path
-    C --> D["Grid dataset<br/>src/grid_dataset.py<br/>(t, t+1) density grids"]
-    D --> E["Grid visualization<br/>src/visualize_grid.py<br/>grid_sample_*.png"]
+    %% Two parallel representations
+    B --> C["**Grid representation**<br/>Particles → 2D density grids (t, t+1)"]
+    B --> D["**Graph representation**<br/>Particles → nodes, neighbors → edges"]
 
-    subgraph F[Grid-based sequence models]
-        F1["Simple CNN<br/>src/train_cnn.py"]
-        F2["Vanilla RNN<br/>src/train_rnn.py"]
-        F3["GRU<br/>src/train_gru.py"]
-        F4["LSTM<br/>src/train_lstm.py"]
+    %% Models
+    subgraph E[**Grid-based sequence models**]
+        E1["CNN"]
+        E2["RNN / GRU / LSTM"]
+    end
+
+    C --> E
+
+    subgraph F[**Graph-based model**]
+        F1["GNN<br/>(message passing on particles)"]
     end
 
     D --> F
 
-    %% Graph / GNN path
-    C --> J["Graph dataset<br/>src/graph_dataset.py<br/>nodes=particles, radius edges"]
-    J --> K["GNN training<br/>src/train_gnn.py<br/>simple_gnn_predictor.pt"]
-
     %% Unified prediction & evaluation
-    F --> G["Predict sequences on val<br/>src/predict_sequence.py<br/>pred_seq_{tag}.pt"]
-    K --> G
+    E --> G["**Predictions on validation sequence**<br/>Next-frame grids (per model)"]
+    F --> G
 
-    G --> H["Per-model videos<br/>src/make_video.py<br/>prediction_vs_gt_{tag}.gif"]
-    G --> I["Centerline sensitivity<br/>src/model_sensitivity.py<br/>model_sensitivity_master.png"]
+    G --> H["**Visual comparison**<br/>Side-by-side GIFs:<br/>ground truth vs prediction"]
+    G --> I["**Quantitative comparison**<br/>Centerline profiles + MSE"]
 
-    %% Docs / reflection
-    A --> L["Documentation & roadmap<br/>README.md, DEMO.md, roadmap.md, postmortem.md"]
-    H --> L
-    I --> L
+    %% Reflection / docs
+    H --> J["**Documentation & reflection**<br/>README, DEMO, postmortem"]
+    I --> J
 ```
