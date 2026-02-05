@@ -90,20 +90,28 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 
 ### 4. Predictions
 
+#### CNN
+
 ![Prediction](output/prediction_vs_gt_cnn.gif)
 *Left: ground truth, Right: predicted frame*
 
 Predicted frame resembles a fading shadow.
+
+#### RNN
 
 ![Prediction](output/prediction_vs_gt_rnn.gif)
 *Left: ground truth, Right: predicted frame*
 
 Noise overwhelms the predictions.
 
+#### GRU
+
 ![Prediction](output/prediction_vs_gt_gru.gif)
 *Left: ground truth, Right: predicted frame*
 
 Free surfaces become diffused.
+
+#### LSTM
 
 ![Prediction](output/prediction_vs_gt_lstm.gif)
 *Left: ground truth, Right: predicted frame*
