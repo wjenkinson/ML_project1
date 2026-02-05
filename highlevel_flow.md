@@ -1,3 +1,5 @@
+
+```mermaid
 flowchart TD
 
     %% Data source
@@ -34,3 +36,4 @@ flowchart TD
     A --> L[Documentation & roadmap<br/>README.md, DEMO.md, roadmap.md, postmortem.md]
     H --> L
     I --> L
+```
