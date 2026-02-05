@@ -90,12 +90,25 @@ Epoch 02 | train_loss=0.098765 | val_loss=0.087654
 
 ### 4. Predictions
 
-![Prediction](output/prediction_vs_gt.gif)
+![Prediction](output/prediction_vs_gt_cnn.gif)
 *Left: ground truth, Right: predicted frame*
 
 Predicted frame resembles a fading shadow.
 
-Future work will focus on swapping out CNNs for GNNs, RNNs and PINNs.
+![Prediction](output/prediction_vs_gt_rnn.gif)
+*Left: ground truth, Right: predicted frame*
+
+Noise overwhelms the predictions.
+
+![Prediction](output/prediction_vs_gt_gru.gif)
+*Left: ground truth, Right: predicted frame*
+
+Free surfaces become diffused.
+
+![Prediction](output/prediction_vs_gt_lstm.gif)
+*Left: ground truth, Right: predicted frame*
+
+Free surfaces become diffused.
 
 See Postmortem for more details.
 
@@ -115,6 +128,9 @@ See Postmortem for more details.
 3. Train the model:
    ```bash
    python src/train_cnn.py
+   python src/train_gru.py
+   python src/train_lstm.py
+   python src/train_rnn.py
    ```
 
 4. Generate predictions:

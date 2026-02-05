@@ -82,7 +82,7 @@
 
 ### Project 1 Extension: RNN and GNN
 
-#### Phase 5: Extension to RNN
+#### (COMPLETE) Phase 5: Extension to RNN
 **Description:** Implement an RNN to capture temporal dependencies in the data.
 
 **Tasks:**
