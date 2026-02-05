@@ -15,8 +15,9 @@ Key differences:
  - Dense vocabulary in the field, work on filling the gap.
  - Future emphasis on time series, alternative data structures, physical constraints 
 
-#### Overview of Future Work
-Three neutral nets seem like appropriate progressions to the existing work: Recurrent, Graph and Physics-Informed Neural Nets (RNN, GNN & PINN)
+#### Notes on project extension
+The basic project was extended by swapping in additional neural network architectures: Recurrent and Graph (RNN (LSTM/GRU) & GNN)
+
 
 ##### RNNs
 Designed to capture temporal dependencies.
@@ -30,13 +31,18 @@ Captures relational structures in data, an essential feature of atomic interacti
 New concepts:
  - graph representation
 
+ #### Comparison of architectures
+
+Architectures were evaluated for their predictivity to ground truth data, with Mean Squared Error (MSE) serving as a baseline metric. LSTM and GRU showed similar performance, with LSTM slightly outperforming GRU. GNN performed slightly worse, but produced qualitatively sharper interfaces and less noise. This is likely due to the persistence of particle detail across time steps forcing mass constraints.
+
+CNN and basic RNN architectures performed poorly in this task, lacking both temporal and physical constraints.
+
+#### Next step
+
+Physics-Informed Neural Nets (PINNs) incorporate physical constraints into the loss function, guiding more physically plausible solutions.
+
 ##### PINNs
 Build physics constraints into the learning process e.g. to enforce conservation laws.
 
 New concepts:
  - physics-based loss function
-
-#### Next step
-Address some gaps left by the initial Project 1 roadmap.
-
-Once gaps addressed, move on to PINNs in Project 2.

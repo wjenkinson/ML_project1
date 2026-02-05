@@ -105,7 +105,7 @@
 
 ---
 
-#### Phase 6: Extension to GNN
+#### (COMPLETE) Phase 6: Extension to GNN
 **Description:** Implement a GNN to capture relational structures in the data.
 
 **Tasks:**

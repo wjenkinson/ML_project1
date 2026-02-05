@@ -25,7 +25,7 @@ ML_project1/
 
 
 ```mermaid
-flowchart LR
+flowchart TD
 
     %% Data source
     A["**Raw simulation data**<br/>LAMMPS dump files"] 
