@@ -2,13 +2,16 @@ from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 
-from grid_dataset import LammpsGridDataset
+from grid_dataset import LammpsGridDataset, atoms_to_grid
+from graph_dataset import LammpsGraphDataset
 from train_cnn import SimpleFramePredictor
 from train_rnn import SimpleRnnPredictor
 from train_gru import SimpleGruPredictor
 from train_lstm import SimpleLstmPredictor
+from train_gnn import SimpleGnnPredictor
 
 
 def save_grid(path: Path, grid: torch.Tensor, title: str) -> None:
@@ -62,6 +65,62 @@ def predict_with_cnn(
 
         pred_frames.append(pred.squeeze(0).detach().cpu())  # (1, H, W)
         current = pred
+
+    return pred_frames
+
+
+def predict_with_gnn(
+    ckpt_path: Path,
+    device: torch.device,
+    gt_frames: List[torch.Tensor],
+    num_steps: int,
+) -> List[torch.Tensor]:
+    """Predict next-frame grids using the GNN model on the validation split.
+
+    This uses the LammpsGraphDataset('val') to obtain particle positions at time t,
+    applies the trained GNN to predict positions at t+1, and then rasterizes the
+    predicted positions back into 2D grids via atoms_to_grid.
+
+    Note: This function performs one-step predictions per validation pair (t, t+1),
+    not an autoregressive rollout. The returned list length is len(val_graph_dataset).
+    """
+
+    # Load validation graph dataset (uses all particles, radius-based edges)
+    val_graph = LammpsGraphDataset(split="val")
+    if len(val_graph) == 0:
+        print("  Validation graph dataset is empty; nothing to predict for GNN.")
+        return []
+
+    # Instantiate and load the trained GNN
+    model = SimpleGnnPredictor(in_channels=4, hidden_channels=64, num_layers=2).to(device)
+    state_dict = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    pred_frames: List[torch.Tensor] = []
+
+    for idx in range(len(val_graph)):
+        data = val_graph[idx]
+        data = data.to(device)
+
+        with torch.no_grad():
+            pred_pos = model(data)  # (N, 3)
+
+        pred_pos_cpu = pred_pos.detach().cpu()
+        atom_type = data.atom_type.cpu().numpy()
+        box_bounds = data.box_bounds.cpu().numpy()
+
+        # Build a pseudo-"atoms" array compatible with atoms_to_grid:
+        # columns: [id, type, x, y, z, ...]
+        pos_np = pred_pos_cpu.numpy()
+        n_atoms = pos_np.shape[0]
+        atoms_arr = np.zeros((n_atoms, 6), dtype=np.float64)
+        atoms_arr[:, 0] = np.arange(1, n_atoms + 1, dtype=np.float64)  # dummy IDs
+        atoms_arr[:, 1] = atom_type.astype(np.float64)
+        atoms_arr[:, 2:5] = pos_np[:, :3]
+
+        grid = atoms_to_grid(atoms_arr, box_bounds, grid_size=(64, 64))  # (1, H, W)
+        pred_frames.append(grid)
 
     return pred_frames
 
@@ -231,6 +290,8 @@ def main() -> None:
             pred_frames = predict_with_gru(ckpt, device, gt_frames, num_steps)
         elif tag == "lstm":
             pred_frames = predict_with_lstm(ckpt, device, gt_frames, num_steps)
+        elif tag == "gnn":
+            pred_frames = predict_with_gnn(ckpt, device, gt_frames, num_steps)
         else:
             print(f"  Skipping unsupported model tag '{tag}'")
             continue

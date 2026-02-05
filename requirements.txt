@@ -7,3 +7,6 @@ jupyter>=1.0.0
 lammps-cython>=0.1.0  # For LAMMPS dump file parsing
 scikit-learn>=0.24.0  # For data splitting
 ipykernel>=6.0.0  # For Jupyter notebook support
+torch_geometric>=2.7.0
+torch-cluster>=1.6.0
+scikit-learn>=0.24.0

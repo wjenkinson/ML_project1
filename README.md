@@ -118,6 +118,17 @@ Free surfaces become diffused.
 
 Free surfaces become diffused.
 
+
+#### GNN
+
+![Prediction](output/prediction_vs_gt_gnn.gif)
+*Left: ground truth, Right: predicted frame*
+
+GNN directly models the atomic interactions, which allows it to capture the interfaces. The predictions are noisy, but the interfaces are preserved.
+
+N.B. The GNN maps atom positions but the predictions are rasterized to a 2D grid to keep the comparison consistent.
+
+
 #### Model Sensitivity
 
 ![Model Sensitivity](output/model_sensitivity_master.png)
@@ -128,7 +139,9 @@ The groundtruth is compared with the 5 generated predicted frames. As a general 
 
 GRU and LSTM performed marginally better, but failed to capture the motion of free surfaces, with the predicted frames showing a diffused free surface.
 
-Postmortem for more details.
+GNN captured the interfaces best, but the predictions are noisy and the density values are not consistent with the groundtruth.
+
+See Postmortem for more details.
 
 ### How to Reproduce
 
@@ -149,6 +162,7 @@ Postmortem for more details.
    python src/train_gru.py
    python src/train_lstm.py
    python src/train_rnn.py
+   python src/train_gnn.py
    ```
 
 4. Generate predictions:
