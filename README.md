@@ -161,6 +161,11 @@ Postmortem for more details.
    python src/make_video.py
    ```
 
+6. Generate model sensitivity:
+   ```bash
+   python src/model_sensitivity.py
+   ```
+
 ## License
 
 This project is for educational purposes.
