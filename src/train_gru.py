@@ -4,54 +4,59 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from grid_dataset import LammpsGridDataset
+from train_rnn import RnnSequenceDataset
 
 
-class SimpleFramePredictor(nn.Module):
-    def __init__(self) -> None:
+class SimpleGruPredictor(nn.Module):
+    def __init__(self, input_size: int, hidden_size: int = 128, num_layers: int = 1) -> None:
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(32, 16, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(16, 1, kernel_size=3, padding=1),
+        self.rnn = nn.GRU(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
         )
+        self.fc = nn.Linear(hidden_size, input_size)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
-        return self.net(x)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:  # (batch, seq_len, input_size)
+        out, _ = self.rnn(x)
+        last_hidden = out[:, -1, :]
+        pred = self.fc(last_hidden)
+        return pred
 
 
 def train(
-    epochs: int = 10,
+    epochs: int = 20,
     batch_size: int = 8,
     learning_rate: float = 1e-3,
+    seq_len: int = 4,
 ) -> None:
     project_root = Path(__file__).parent.parent
     print(f"Project root: {project_root}")
 
-    # For this project, always run on CPU to avoid CUDA compatibility issues.
     device = torch.device("cpu")
     print(f"Using device: {device}")
 
     torch.manual_seed(0)
 
-    train_dataset = LammpsGridDataset(split="train", grid_size=(64, 64))
-    val_dataset = LammpsGridDataset(split="val", grid_size=(64, 64))
+    train_dataset = RnnSequenceDataset(split="train", seq_len=seq_len, grid_size=(64, 64))
+    val_dataset = RnnSequenceDataset(split="val", seq_len=seq_len, grid_size=(64, 64))
+
+    if train_dataset.input_size == 0:
+        print("Train dataset is empty; nothing to train on.")
+        return
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    model = SimpleFramePredictor().to(device)
+    model = SimpleGruPredictor(input_size=train_dataset.input_size).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     criterion = nn.MSELoss()
 
     best_val_loss = float("inf")
     output_dir = project_root / "output"
     output_dir.mkdir(exist_ok=True)
-    model_path = output_dir / "simple_cnn_predictor.pt"
+    model_path = output_dir / "simple_gru_predictor.pt"
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -63,8 +68,8 @@ def train(
             targets = targets.to(device)
 
             optimizer.zero_grad(set_to_none=True)
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
+            preds = model(inputs)
+            loss = criterion(preds, targets)
             loss.backward()
             optimizer.step()
 
@@ -81,8 +86,8 @@ def train(
                 inputs = inputs.to(device)
                 targets = targets.to(device)
 
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                preds = model(inputs)
+                loss = criterion(preds, targets)
 
                 val_loss += loss.item()
                 val_batches += 1
@@ -98,7 +103,7 @@ def train(
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             torch.save(model.state_dict(), model_path)
-            print(f"  Saved new best model to {model_path}")
+            print(f"  Saved new best GRU model to {model_path}")
 
     print("Training complete.")
     print(f"Best validation loss: {best_val_loss:.6f}")

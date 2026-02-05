@@ -1,10 +1,14 @@
 from pathlib import Path
+from typing import List
 
 import matplotlib.pyplot as plt
 import torch
 
 from grid_dataset import LammpsGridDataset
 from train_cnn import SimpleFramePredictor
+from train_rnn import SimpleRnnPredictor
+from train_gru import SimpleGruPredictor
+from train_lstm import SimpleLstmPredictor
 
 
 def save_grid(path: Path, grid: torch.Tensor, title: str) -> None:
@@ -22,6 +26,171 @@ def save_grid(path: Path, grid: torch.Tensor, title: str) -> None:
     plt.close()
 
 
+def extract_model_tag(ckpt_path: Path) -> str:
+    """Derive a short model tag from a checkpoint filename.
+
+    For example, 'simple_cnn_predictor.pt' -> 'cnn'.
+    """
+    name = ckpt_path.stem  # e.g., 'simple_cnn_predictor'
+    if name.startswith("simple_") and name.endswith("_predictor"):
+        return name[len("simple_") : -len("_predictor")]
+    return name
+
+
+def predict_with_cnn(
+    ckpt_path: Path,
+    device: torch.device,
+    gt_frames: List[torch.Tensor],
+    num_steps: int,
+) -> List[torch.Tensor]:
+    """Autoregressively roll out predictions using the CNN model."""
+
+    model = SimpleFramePredictor().to(device)
+    state_dict = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    if not gt_frames:
+        return []
+
+    current = gt_frames[0].unsqueeze(0).to(device)  # (1, 1, H, W)
+    pred_frames: List[torch.Tensor] = []
+
+    for _ in range(num_steps):
+        with torch.no_grad():
+            pred = model(current)  # (1, 1, H, W)
+
+        pred_frames.append(pred.squeeze(0).detach().cpu())  # (1, H, W)
+        current = pred
+
+    return pred_frames
+
+
+def predict_with_gru(
+    ckpt_path: Path,
+    device: torch.device,
+    gt_frames: List[torch.Tensor],
+    num_steps: int,
+    seq_len: int = 4,
+) -> List[torch.Tensor]:
+
+    if len(gt_frames) <= seq_len:
+        print("  Not enough frames for GRU rollout; need more than seq_len.")
+        return []
+
+    input_size = gt_frames[0].numel()
+
+    model = SimpleGruPredictor(input_size=input_size).to(device)
+    state_dict = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    seq_flat = torch.stack(
+        [f.view(-1) for f in gt_frames[:seq_len]], dim=0
+    )
+
+    pred_frames: List[torch.Tensor] = []
+
+    for _ in range(num_steps):
+        inp = seq_flat.unsqueeze(0).to(device)
+        with torch.no_grad():
+            pred_flat = model(inp)[0]
+
+        pred_grid = pred_flat.view_as(gt_frames[0])
+        pred_frames.append(pred_grid.detach().cpu())
+
+        seq_flat = torch.cat([seq_flat[1:], pred_flat.unsqueeze(0).cpu()], dim=0)
+
+    return pred_frames
+
+
+def predict_with_lstm(
+    ckpt_path: Path,
+    device: torch.device,
+    gt_frames: List[torch.Tensor],
+    num_steps: int,
+    seq_len: int = 4,
+) -> List[torch.Tensor]:
+
+    if len(gt_frames) <= seq_len:
+        print("  Not enough frames for LSTM rollout; need more than seq_len.")
+        return []
+
+    input_size = gt_frames[0].numel()
+
+    model = SimpleLstmPredictor(input_size=input_size).to(device)
+    state_dict = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    seq_flat = torch.stack(
+        [f.view(-1) for f in gt_frames[:seq_len]], dim=0
+    )
+
+    pred_frames: List[torch.Tensor] = []
+
+    for _ in range(num_steps):
+        inp = seq_flat.unsqueeze(0).to(device)
+        with torch.no_grad():
+            pred_flat = model(inp)[0]
+
+        pred_grid = pred_flat.view_as(gt_frames[0])
+        pred_frames.append(pred_grid.detach().cpu())
+
+        seq_flat = torch.cat([seq_flat[1:], pred_flat.unsqueeze(0).cpu()], dim=0)
+
+    return pred_frames
+
+
+def predict_with_rnn(
+    ckpt_path: Path,
+    device: torch.device,
+    gt_frames: List[torch.Tensor],
+    num_steps: int,
+    seq_len: int = 4,
+) -> List[torch.Tensor]:
+    """Autoregressively roll out predictions using the vanilla RNN model.
+
+    The RNN was trained on sequences of length ``seq_len`` of flattened grids
+    to predict the next flattened grid. Here we:
+    - start from the first ``seq_len`` ground-truth frames,
+    - repeatedly predict the next frame, and
+    - slide the input window forward using the prediction.
+    """
+
+    if len(gt_frames) <= seq_len:
+        print("  Not enough frames for RNN rollout; need more than seq_len.")
+        return []
+
+    # All grids have the same shape; flatten to get input_size
+    input_size = gt_frames[0].numel()
+
+    model = SimpleRnnPredictor(input_size=input_size).to(device)
+    state_dict = torch.load(ckpt_path, map_location=device)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    # Initial sequence: first seq_len ground-truth frames
+    seq_flat = torch.stack(
+        [f.view(-1) for f in gt_frames[:seq_len]], dim=0
+    )  # (seq_len, input_size)
+
+    pred_frames: List[torch.Tensor] = []
+
+    for _ in range(num_steps):
+        inp = seq_flat.unsqueeze(0).to(device)  # (1, seq_len, input_size)
+        with torch.no_grad():
+            pred_flat = model(inp)[0]  # (input_size,)
+
+        pred_grid = pred_flat.view_as(gt_frames[0])  # (1, H, W)
+        pred_frames.append(pred_grid.detach().cpu())
+
+        # Slide window: drop oldest, append new prediction
+        seq_flat = torch.cat([seq_flat[1:], pred_flat.unsqueeze(0).cpu()], dim=0)
+
+    return pred_frames
+
+
 def main() -> None:
     project_root = Path(__file__).parent.parent
     output_dir = project_root / "output"
@@ -29,59 +198,64 @@ def main() -> None:
 
     device = torch.device("cpu")
 
-    # Load validation dataset for starting frame and ground truth comparison
+    # Shared validation dataset and ground-truth frames
     val_dataset = LammpsGridDataset(split="val", grid_size=(64, 64))
     if len(val_dataset) == 0:
         print("Validation dataset is empty; nothing to predict.")
         return
 
-    # Use the first pair as a starting point
-    start_in, start_target = val_dataset[0]
+    # Build ground-truth frames: t0 input, then all targets
+    start_in, _ = val_dataset[0]
+    gt_frames: List[torch.Tensor] = [start_in]
+    for i in range(len(val_dataset)):
+        _, gt = val_dataset[i]
+        gt_frames.append(gt)
 
-    # Load trained model
-    model_path = output_dir / "simple_frame_predictor.pt"
-    if not model_path.exists():
-        print(f"Trained model not found at {model_path}; run train_cnn.py first.")
-        return
-
-    model = SimpleFramePredictor().to(device)
-    state_dict = torch.load(model_path, map_location=device)
-    model.load_state_dict(state_dict)
-    model.eval()
-
-    # Number of future steps to roll out
     num_steps = 5
 
-    # Save the starting input and its true next frame
-    save_grid(output_dir / "predict_seq_step0_input.png", start_in, "Input t0 (val[0] input)")
-    save_grid(output_dir / "predict_seq_step1_gt.png", start_target, "Ground truth t1 (val[0] target)")
+    # Discover available model checkpoints
+    ckpt_files = sorted(output_dir.glob("simple_*_predictor.pt"))
+    if not ckpt_files:
+        print(f"No model checkpoints matching 'simple_*_predictor.pt' found in {output_dir}")
+        return
 
-    current = start_in.unsqueeze(0).to(device)  # shape (1, 1, H, W)
+    for ckpt in ckpt_files:
+        tag = extract_model_tag(ckpt)
+        print(f"\nRunning prediction sequence for model tag='{tag}' from {ckpt.name}")
 
-    for step in range(1, num_steps + 1):
-        with torch.no_grad():
-            pred = model(current)
+        if tag == "cnn":
+            pred_frames = predict_with_cnn(ckpt, device, gt_frames, num_steps)
+        elif tag == "rnn":
+            pred_frames = predict_with_rnn(ckpt, device, gt_frames, num_steps)
+        elif tag == "gru":
+            pred_frames = predict_with_gru(ckpt, device, gt_frames, num_steps)
+        elif tag == "lstm":
+            pred_frames = predict_with_lstm(ckpt, device, gt_frames, num_steps)
+        else:
+            print(f"  Skipping unsupported model tag '{tag}'")
+            continue
 
-        # Save the predicted grid for this step
-        save_grid(
-            output_dir / f"predict_seq_step{step}_pred.png",
-            pred.squeeze(0),
-            f"Predicted t{step}",
+        if not pred_frames:
+            print("  No predictions generated; skipping.")
+            continue
+
+        # Align ground truth and predictions to the same length
+        seq_len = min(len(pred_frames), len(gt_frames) - 1)
+        gt_seq = gt_frames[1 : seq_len + 1]
+        pred_seq = pred_frames[:seq_len]
+
+        seq_path = output_dir / f"pred_seq_{tag}.pt"
+        torch.save(
+            {
+                "tag": tag,
+                "gt": [f.cpu() for f in gt_seq],
+                "pred": [f.cpu() for f in pred_seq],
+            },
+            seq_path,
         )
+        print(f"  Saved prediction sequence to {seq_path}")
 
-        # Try to save a ground-truth frame for comparison if available
-        if step < len(val_dataset):
-            _, gt = val_dataset[step]
-            save_grid(
-                output_dir / f"predict_seq_step{step+1}_gt.png",
-                gt,
-                f"Ground truth t{step+1}",
-            )
-
-        # Feed prediction back in as the next input
-        current = pred
-
-    print(f"Saved prediction sequence images to {output_dir}")
+    print("\nFinished generating prediction sequences.")
 
 
 if __name__ == "__main__":
