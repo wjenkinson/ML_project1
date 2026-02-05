@@ -118,7 +118,17 @@ Free surfaces become diffused.
 
 Free surfaces become diffused.
 
-See Postmortem for more details.
+#### Model Sensitivity
+
+![Model Sensitivity](output/model_sensitivity_master.png)
+
+The plots cut through the horizontal and vertical centrelines of the simulation. Being a multiphase system, the groundtruth shows either a void (density 0) or a dense phase (density > 0.75) with a sharp transition at the interface.
+
+The groundtruth is compared with the 5 generated predicted frames. As a general comment, all models perform poorly for capturing the sharp interfaces, with CNN and basic RNN performing the worst.
+
+GRU and LSTM performed marginally better, but failed to capture the motion of free surfaces, with the predicted frames showing a diffused free surface.
+
+Postmortem for more details.
 
 ### How to Reproduce
 
