@@ -63,7 +63,7 @@
 
 ---
 
-#### **Phase 4: Postmortem (Project Retrospective)**
+#### ** (COMPLETE) Phase 4: Postmortem (Project Retrospective)**
 **Description:** Review the project to solidify understanding and identify next steps.
 
 **Tasks:**
@@ -129,7 +129,7 @@
 
 ---
 
-#### Phase 7: Post Mortem 2
+#### (COMPLETE) Phase 7: Post Mortem 2
 **Description:** Review the extended project to solidify understanding and identify next steps.
 
 **Tasks:**
